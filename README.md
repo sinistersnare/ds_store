@@ -23,4 +23,5 @@ Should be 2018 edition...
 
 ## License ##
 
-This code is distributed under the MIT license. Please see the LICENSE file for information.
+This code is distributed under the ***MIT license***.
+Please see the LICENSE.md file for information.
