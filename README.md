@@ -16,6 +16,10 @@ ds_store = "0.1.0"
 
 TODO!
 
+## Rust Version ##
+
+Should be 2018 edition...
+
 
 ## License ##
 
