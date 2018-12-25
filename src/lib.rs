@@ -24,9 +24,9 @@ struct Block<'a>{
 struct Allocator<'a> {
     // TODO: could this be simplified to be any readable bytes? `Read<u8>`?
     data: &'a [u8],
-    root: Box<Block<'a>>,
     offsets: Vec<u32>,
-    toc: HashMap<&'a str, u32>,
+    // TODO: hard lifetime errors, possibly impossible, if we use &'a str here.
+    toc: HashMap<String, u32>,
     // TODO: this could just be a Vec<u32>, as the keys are all just 2^n for n=0..32.
     // Whenever we access this vec, we could do a lookup table to see which index to use.
     // Probably a lot more code, but a lot of saved space too.
@@ -51,11 +51,12 @@ enum RecordData<'a> {
 
 // TODO: Better errors, BadData, NotEnoughData,
 // and InvalidString could all take a &'static str, describing their errors.
-enum Error<'a> {
+enum Error {
     BadData(&'static str),
     NotEnoughData,
     InvalidString,
-    UnkonwnStructureType(&'a str),
+    // Can this be a `&'a str` somehow?
+    UnkonwnStructureType(String),
     OffsetKeyDoesntExist,
 }
 
@@ -71,66 +72,52 @@ impl<'a> Block<'a> {
         }
     }
 
-    fn skip(&self, amt: usize) -> Result<(), Error> {
-        if self.len_check(amt) {
+    fn len_check(&self, size: usize) -> Result<(), Error> {
+        if self.data.len() - self.pos.get() < size {
             Err(Error::NotEnoughData)
         } else {
-            self.pos.set(self.pos.get() + amt);
             Ok(())
         }
     }
 
-    fn len_check(&self, size: usize) -> bool {
-        self.data.len() - self.pos.get() < size
+    fn skip(&self, amt: usize) -> Result<(), Error> {
+        self.len_check(amt)?;
+        self.pos.set(self.pos.get() + amt);
+        Ok(())
     }
 
     fn read_u32(&self) -> Result<u32, Error> {
-        if self.len_check(4) {
-            Err(Error::NotEnoughData)
-        } else {
-            self.pos.set(self.pos.get() + 4);
-            let pos = self.pos.get();
-            Ok(byteorder::BigEndian::read_u32(&self.data[pos..pos+4]))
-        }
+        self.len_check(4)?;
+        self.pos.set(self.pos.get() + 4);
+        let pos = self.pos.get();
+        Ok(byteorder::BigEndian::read_u32(&self.data[pos..pos+4]))
     }
 
     fn read_u8(&self) -> Result<u8, Error> {
-        if self.len_check(1) {
-            Err(Error::NotEnoughData)
-        } else {
-            self.pos.set(self.pos.get() + 1);
-            Ok(self.data[self.pos.get()])
-        }
+        self.len_check(1)?;
+        self.pos.set(self.pos.get() + 1);
+        Ok(self.data[self.pos.get()])
     }
 
     fn read_i16(&self) -> Result<i16, Error> {
-        if self.len_check(2) {
-            Err(Error::NotEnoughData)
-        } else {
-            self.pos.set(self.pos.get() + 2);
-            let pos = self.pos.get();
-            Ok(byteorder::BigEndian::read_i16(&self.data[pos..pos+2]))
-        }
+        self.len_check(2)?;
+        self.pos.set(self.pos.get() + 2);
+        let pos = self.pos.get();
+        Ok(byteorder::BigEndian::read_i16(&self.data[pos..pos+2]))
     }
 
     fn read_i32(&self) -> Result<i32, Error> {
-        if self.len_check(2) {
-            Err(Error::NotEnoughData)
-        } else {
-            self.pos.set(self.pos.get() + 4);
-            let pos = self.pos.get();
-            Ok(byteorder::BigEndian::read_i32(&self.data[pos..pos+4]))
-        }
+        self.len_check(2)?;
+        self.pos.set(self.pos.get() + 4);
+        let pos = self.pos.get();
+        Ok(byteorder::BigEndian::read_i32(&self.data[pos..pos+4]))
     }
 
     fn read_buf(&self, len: usize) -> Result<&'a [u8], Error> {
-        if self.len_check(len) {
-            Err(Error::NotEnoughData)
-        } else {
-            self.pos.set(self.pos.get() + len);
-            let pos = self.pos.get();
-            Ok(&self.data[pos..pos+len])
-        }
+        self.len_check(len)?;
+        self.pos.set(self.pos.get() + len);
+        let pos = self.pos.get();
+        Ok(&self.data[pos..pos+len])
     }
 
     // TODO: Small possible optimization opportinuty,
@@ -177,7 +164,7 @@ impl<'a> Block<'a> {
         Ok(Record {name, struct_type, struct_id, record_data})
     }
 
-    fn get_record_data(&'a self, struct_type: &'a str) -> Result<RecordData<'a>, Error<'a>> {
+    fn get_record_data(&'a self, struct_type: &'a str) -> Result<RecordData<'a>, Error> {
         match struct_type {
             "bool" => Ok(RecordData::Bool(self.read_u32()? != 0)),
             "long" => Ok(RecordData::Long(self.read_i32()?)),
@@ -190,7 +177,7 @@ impl<'a> Block<'a> {
                 Ok(RecordData::Blob(self.read_buf(amt as usize)?))
             },
             bad => {
-                Err(Error::UnkonwnStructureType(bad))
+                Err(Error::UnkonwnStructureType(bad.to_string()))
             }
         }
     }
@@ -205,10 +192,10 @@ impl<'a> Allocator<'a> {
         let offsets = read_offsets(&root)?;
         let toc = read_toc(&root)?;
         let free_list = read_free_list(&root)?;
-        Ok(Allocator { data, root: Box::new(root), offsets, toc, free_list})
+        Ok(Allocator { data, offsets, toc, free_list})
     }
 
-    fn get_block(&'a self, block_id: usize) -> Result<Block<'a>, Error<'a>> {
+    fn get_block(&'a self, block_id: usize) -> Result<Block<'a>, Error> {
         let addr = match self.offsets.get(block_id) {
             None => {
                 return Err(Error::OffsetKeyDoesntExist);
@@ -256,11 +243,11 @@ fn read_header<'a>(data: &'a [u8]) -> Result<(u32, u32), Error> {
 
 /// Given a block positioned at the offsets vector's start,
 /// Read in the offsets.
-fn read_offsets<'a>(block: &'a Block<'a>) -> Result<Vec<u32>, Error<'a>> {
+fn read_offsets<'a>(block: &'a Block<'a>) -> Result<Vec<u32>, Error> {
     let num_offsets = block.read_u32()?;
     let mut offsets = Vec::with_capacity(num_offsets as usize);
     // unknown bytes. Seems to be always 0. Put sanity check here?
-    block.skip(4);
+    block.skip(4)?;
     for _i in 0..num_offsets {
         offsets.push(block.read_u32()?);
     }
@@ -273,7 +260,7 @@ fn read_offsets<'a>(block: &'a Block<'a>) -> Result<Vec<u32>, Error<'a>> {
 }
 
 /// Given a block positioned at the table of contents' start, read in the TOC.
-fn read_toc<'a>(block: &'a Block<'a>) -> Result<HashMap<&'a str, u32>, Error<'a>> {
+fn read_toc<'a>(block: &'a Block<'a>) -> Result<HashMap<String, u32>, Error> {
     let count = block.read_u32()?;
     let mut toc = HashMap::with_capacity(count as usize);
     for _i in 0..count {
@@ -283,7 +270,7 @@ fn read_toc<'a>(block: &'a Block<'a>) -> Result<HashMap<&'a str, u32>, Error<'a>
             Err(_) => {
                 return Err(Error::InvalidString)
             },
-            Ok(s) => s,
+            Ok(s) => s.to_string(),
         };
         let toc_value = block.read_u32()?;
         toc.insert(toc_key, toc_value);
@@ -292,7 +279,7 @@ fn read_toc<'a>(block: &'a Block<'a>) -> Result<HashMap<&'a str, u32>, Error<'a>
 }
 
 /// Given a block positioned at the free list's start, read it in.
-fn read_free_list<'a>(block: &'a Block<'a>) -> Result<HashMap<u32,Vec<u32>>, Error<'a>> {
+fn read_free_list<'a>(block: &'a Block<'a>) -> Result<HashMap<u32,Vec<u32>>, Error> {
     let mut free_list = HashMap::with_capacity(32);
 
     for i in 0..32 {
