@@ -12,7 +12,7 @@ fn main() {
 	}
 	let mut file = std::fs::File::open(&args[1]).unwrap();
 	let mut buf: Vec<u8> = vec![];
-	file.read_to_end(&mut buf);
+	file.read_to_end(&mut buf).unwrap();
 	let a = match Allocator::new(&buf) {
 		Ok(a) => a,
 		Err(e) => {
@@ -20,15 +20,15 @@ fn main() {
 			return;
 		}
 	};
-	let records = match a.traverse() {
-		Ok(r) => r,
+	let dir = match a.traverse() {
+		Ok(d) => d,
 		Err(e) => {
-			println!("God error `{:?}`, oh no!", e);
+			println!("Got error `{:?}`, oh no!", e);
 			return;
 		}
 	};
-	for record in &records {
+	for record in &dir.records {
 		println!("Record: {:?}", record);
 	}
-	println!("printed {:?} records", records.len());
+	println!("printed {:?} records", dir.num_records);
 }
