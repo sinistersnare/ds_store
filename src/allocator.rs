@@ -18,6 +18,14 @@ pub enum Error {
 }
 
 #[derive(Debug)]
+pub struct Directory<'a> {
+    num_internals: u32,
+    num_records: u32,
+    num_nodes: u32,
+    records: Vec<Record<'a>>,
+}
+
+#[derive(Debug)]
 pub struct Record<'a> {
     file_name: String,
     data: RecordData<'a>,
@@ -90,7 +98,7 @@ impl<'a> Block<'a> {
     }
 
     fn read_buf(&mut self, amt: usize) -> Result<&'a [u8], Error> {
-        self.len_check(amt);
+        self.len_check(amt)?;
         let (left, right) = self.0.split_at(amt);
         self.0 = right;
         Ok(left)
@@ -257,44 +265,39 @@ impl<'a> Allocator<'a> {
         Ok(free_list)
     }
 
-    pub fn traverse(&self) -> Result<Vec<Record<'a>>, Error> {
+    pub fn traverse(&self) -> Result<Directory<'a>, Error> {
         let mut root_block = self.get_block(self.dsdb_location)?;
         let root_node = root_block.read_u32()?;
         let num_internals = root_block.read_u32()?;
         let num_records = root_block.read_u32()?;
         let num_nodes = root_block.read_u32()?;
 
-        // Maybe we can have some optimization where instead of allocating a bunch of Vecs,
-        // we could just have one with `num_records` capacity, and pass that around the
-        // traversal functions. We add to that vec, and 1 allocation needed.
         root_block.read_exact(&[0,0, 0x10, 0], "Expected 0x1000, found not that.")?;
-        let traversed = self.traverse_tree(root_node)?;
-        Ok(traversed)
+        let mut records = Vec::with_capacity(num_records as usize);
+        self.traverse_tree(root_node, &mut records)?;
+        Ok(Directory {num_internals, num_records, num_nodes, records})
     }
 
-    fn traverse_tree(&self, block_id: u32) -> Result<Vec<Record<'a>>, Error> {
+    fn traverse_tree(&self, block_id: u32, records: &mut Vec<Record<'a>>) -> Result<(), Error> {
         let mut current_block = self.get_block(block_id)?;
 
         let pair_count = current_block.read_u32()?;
         if pair_count == 0 {
             // We are at a leaf! Congratulations!
             let count = current_block.read_u32()?;
-            let mut records = Vec::with_capacity(count as usize);
             for _ in 0..count {
                 records.push(current_block.read_record()?);
             }
-            Ok(records)
+            Ok(())
         } else {
             // Internal node of the B-Tree!
-            let mut this_levels_records = vec![];
             for _ in 0..pair_count {
                 let child = current_block.read_u32()?;
-                let mut childs_records = self.traverse_tree(child)?;
+                self.traverse_tree(child, records)?;
                 let current_record = current_block.read_record()?;
-                childs_records.push(current_record);
-                this_levels_records.append(&mut childs_records);
+                records.push(current_record);
             }
-            Ok(this_levels_records)
+            Ok(())
         }
     }
 }
