@@ -20,9 +20,9 @@ pub enum Error {
 #[derive(Debug)]
 pub struct Directory<'a> {
     num_internals: u32,
-    num_records: u32,
     num_nodes: u32,
-    records: Vec<Record<'a>>,
+    pub num_records: u32,
+    pub records: Vec<Record<'a>>,
 }
 
 #[derive(Debug)]
@@ -174,34 +174,30 @@ pub struct Allocator<'a> {
     data: &'a [u8],
 
     /// The offsets to each block(?) (TODO write this.)
-    offsets: Vec<u32>,
+    pub offsets: Vec<u32>,
     /// It is a 'table of contents', but it seems that there is only ever 1 entry, "DSDB".
-    dsdb_location: u32,
+    pub dsdb_location: u32,
     /// locations of data allocted by the buddy-allocator. (TODO: write this.)
-    free_list: Vec<Vec<u32>>,
+    pub free_list: Vec<Vec<u32>>,
 }
 
 impl<'a> Allocator<'a> {
     /// Create a new alloctor, initalizing all important data needed for traversal.
     pub fn new(data: &'a [u8]) -> Result<Allocator<'a>, Error> {
-        // Probably not my best idea...
-        // But we fill this in little by little...
-        let mut allocator: Allocator = unsafe { std::mem::uninitialized() };
-        allocator.data = &data[..];
         if &data[0..4] != &[0,0,0,1] {
             // creating a block offsets by 4 bytes, so check the first 4 here.
             return Err(Error::BadData("First 4 bytes must be `1`."));
         }
         let mut prelude_block = Block::new(data, 0, 32)?;
 
-        let (info_block_offset, info_block_size) = allocator.read_prelude(&mut prelude_block)?;
+        let (info_block_offset, info_block_size) = Allocator::read_prelude(&mut prelude_block)?;
         let mut info_block = Block::new(data, info_block_offset as usize, info_block_size as usize)?;
 
-        allocator.offsets = allocator.read_offsets(&mut info_block)?;
-        allocator.dsdb_location = allocator.read_dsdb_location(&mut info_block)?;
-        allocator.free_list = allocator.read_free_list(&mut info_block)?;
+        let offsets = Allocator::read_offsets(&mut info_block)?;
+        let dsdb_location = Allocator::read_dsdb_location(&mut info_block)?;
+        let free_list = Allocator::read_free_list(&mut info_block)?;
 
-        Ok(allocator) // allocator should be fully allocated here.
+        Ok(Allocator {data, offsets, dsdb_location, free_list}) // allocator should be fully allocated here.
     }
 
     fn get_block(&self, block_id: u32) -> Result<Block<'a>, Error> {
@@ -215,7 +211,7 @@ impl<'a> Allocator<'a> {
         Block::new(self.data, offset as usize, size)
     }
 
-    fn read_prelude(&self, info_block: &mut Block<'a>) -> Result<(u32, u32), Error> {
+    fn read_prelude(info_block: &mut Block<'a>) -> Result<(u32, u32), Error> {
         info_block.read_exact(b"Bud1", "Magic number is wrong.")?;
 
         let offset = info_block.read_u32()?;
@@ -228,7 +224,7 @@ impl<'a> Allocator<'a> {
         Ok((offset, size))
     }
 
-    fn read_offsets(&self, info_block: &mut Block<'a>) -> Result<Vec<u32>, Error> {
+    fn read_offsets(info_block: &mut Block<'a>) -> Result<Vec<u32>, Error> {
         let num_offsets = info_block.read_u32()?;
         let mut offsets = Vec::with_capacity(num_offsets as usize);
         // Documented as unknown bytes, always observed as 0.
@@ -244,7 +240,7 @@ impl<'a> Allocator<'a> {
         Ok(offsets)
     }
 
-    fn read_dsdb_location(&self, info_block: &mut Block<'a>) -> Result<u32, Error> {
+    fn read_dsdb_location(info_block: &mut Block<'a>) -> Result<u32, Error> {
         // Amount of entries in the TOC.
         info_block.read_exact(&[0,0,0,1], "I Thought there should only be 1 TOC entry...")?;
         info_block.read_exact(&[4], "Looks like \"DSDB\" is not the only key...")?;
@@ -252,7 +248,7 @@ impl<'a> Allocator<'a> {
         Ok(info_block.read_u32()?) // value!
     }
 
-    fn read_free_list(&self, info_block: &mut Block<'a>) -> Result<Vec<Vec<u32>>, Error>  {
+    fn read_free_list(info_block: &mut Block<'a>) -> Result<Vec<Vec<u32>>, Error>  {
         let mut free_list = Vec::with_capacity(32);
         for _ in 0..=31 {
             let block_count = info_block.read_u32()?;
@@ -288,7 +284,6 @@ impl<'a> Allocator<'a> {
             for _ in 0..count {
                 records.push(current_block.read_record()?);
             }
-            Ok(())
         } else {
             // Internal node of the B-Tree!
             for _ in 0..pair_count {
@@ -297,7 +292,7 @@ impl<'a> Allocator<'a> {
                 let current_record = current_block.read_record()?;
                 records.push(current_record);
             }
-            Ok(())
         }
+        Ok(())
     }
 }
