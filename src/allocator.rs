@@ -1,21 +1,9 @@
 
 
 use byteorder::{ByteOrder, BigEndian};
+use crate::Error;
 
 // TODO verify `as usize` casts, or place them where they truly belong (where they are created, not when used).
-
-// TODO: Better errors, BadData, NotEnoughData,
-// and InvalidString could all take a &'static str, describing their errors.
-#[derive(Debug)]
-pub enum Error {
-    BadData(&'static str),
-    NotEnoughData,
-    BlockDoesntExist,
-    InvalidString,
-    // Can this be a `&'a str` somehow?
-    UnkonwnStructureType(String),
-    // OffsetKeyDoesntExist,
-}
 
 #[derive(Debug)]
 pub struct Directory<'a> {
@@ -27,12 +15,12 @@ pub struct Directory<'a> {
 
 #[derive(Debug)]
 pub struct Record<'a> {
-    file_name: String,
-    data: RecordData<'a>,
+    pub file_name: String,
+    pub data: RecordData<'a>,
 }
 
 #[derive(Debug)]
-enum RecordData<'a> {
+pub enum RecordData<'a> {
     Bool(bool),
     Long(i32),
     Shor(i16),
@@ -71,6 +59,13 @@ impl<'a> Block<'a> {
         ret
     }
 
+    fn read_u16(&mut self) -> Result<u16, Error> {
+        self.len_check(2)?;
+        let ret = Ok(BigEndian::read_u16(self.0));
+        self.0 = &self.0[2..];
+        ret
+    }
+
     fn read_i32(&mut self) -> Result<i32, Error> {
         self.len_check(4)?;
         let ret = Ok(BigEndian::read_i32(self.0));
@@ -80,7 +75,6 @@ impl<'a> Block<'a> {
 
     fn read_u32(&mut self) -> Result<u32, Error> {
         self.len_check(4)?;
-
         let ret = Ok(BigEndian::read_u32(self.0));
         self.0 = &self.0[4..];
         ret
@@ -102,26 +96,22 @@ impl<'a> Block<'a> {
         let (left, right) = self.0.split_at(amt);
         self.0 = right;
         Ok(left)
-        // let ret = &self.0[..amt];
-        // self.0 = &self.0[amt..];
-        // Ok(ret) // TODO
     }
-
 
     // TODO: Small possible optimization opportinuty,
     // only has to allocate for String on big-endian machines.
     // as you can just slice::from_raw_parts the &[u8] -> &[u16] and itll just work.
     // Would need to dupe this function with #[cfg(target_endian=little/big)]
+    #[cfg(target_endian="little")]
     fn read_record(&mut self) -> Result<Record<'a>, Error> {
-        let length = self.read_u32()?;
-        let filename_buf = self.read_buf(length as usize)?;
+        let file_name_length = self.read_u32()?;
         let file_name = {
-            let mut u16_buf: Vec<u16> = Vec::with_capacity(length as usize / 2);
+            let mut u16_buf: Vec<u16> = Vec::with_capacity(file_name_length as usize * 2);
 
             // FIXME: there should be a better way to do this.
             // Other than the BE/LE optimization mentioned above.
-            for i in 0..length/2 {
-                u16_buf.push(byteorder::BigEndian::read_u16(&filename_buf[i as usize * 2..]));
+            for _ in 0..file_name_length {
+                u16_buf.push(self.read_u16()?);
             }
 
             match String::from_utf16(&u16_buf) {
@@ -132,10 +122,6 @@ impl<'a> Block<'a> {
             }
         };
 
-        // seems like I could safely skip this?
-        // TODO: Make sure this is always "Iloc".
-        // TODO: could maybe do from_utf8_unchcked if we are feeling frisky.
-        // We should do it, because this isnt utf8, its ASCII.
         self.read_exact(b"Iloc", "Struct ID was not \"Iloc\".")?;
 
         let struct_type = match std::str::from_utf8(self.read_buf(4)?) {
