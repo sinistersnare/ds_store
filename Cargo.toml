@@ -7,7 +7,7 @@ license-file = "LICENSE.md"
 edition = "2015"
 
 description = "A .DS_Store parser for Rust."
-documentation = "https://github.com/sinistersnare/ds_store"
+documentation = "https://docs.rs/ds_store/"
 repository = "https://github.com/sinistersnare/ds_store"
 homepage = "https://github.com/sinistersnare/ds_store"
 readme = "README.md"
