@@ -55,10 +55,10 @@ Please see the LICENSE.md file for information.
 
 ## TODO ##
 
-* Release documentation?
+* Address the various TODOs within the code.
+* Document everything!
 * Rigorous testing? Probably!
 * Better API? What do _you_ want to do with DS_Store files? Let me know! Make an issue!
-* Make no_std compatible
-	* Add no_std category when happens
-    * Basically just need to get rid of `ds_store::Error::UnkonwnStructureType(String)` I think.
+* Make no_std compatible? Probably not gonna happen. std types too nice.
 * Fill out Cargo.toml metadata with docs location and stuff.
+* Should I exclude the examples from the cargo manifest? So that there isnt so many useless kilobytes being downloaded with the crate. People who want the examples probably just clone the library right?

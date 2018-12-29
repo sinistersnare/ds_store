@@ -19,12 +19,16 @@ pub struct Record<'a> {
     pub data: RecordData<'a>,
 }
 
+// TODO: Better strongly type these. Instead of Dutc(i64), maybe Dutc(SomeTimestampStruct)
 #[derive(Debug)]
 pub enum RecordData<'a> {
     Bool(bool),
     Long(i32),
     Shor(i16),
     Blob(&'a [u8]),
+    Ustr(String),
+    Comp(i64),
+    Dutc(i64),
 }
 
 struct Block<'a>(&'a [u8]);
@@ -80,6 +84,13 @@ impl<'a> Block<'a> {
         ret
     }
 
+    fn read_i64(&mut self) -> Result<i64, Error> {
+        self.len_check(8)?;
+        let ret = Ok(BigEndian::read_i64(self.0));
+        self.0 = &self.0[4..];
+        ret
+    }
+
     fn read_exact(&mut self, data: &'static [u8], err_msg: &'static str) -> Result<(), Error> {
         self.len_check(data.len())?;
         let unconfirmed = &self.0[..data.len()];
@@ -98,28 +109,28 @@ impl<'a> Block<'a> {
         Ok(left)
     }
 
+    fn read_utf16(&mut self) -> Result<String, Error> {
+        let file_name_length = self.read_u32()?;
+        let mut u16_buf: Vec<u16> = Vec::with_capacity(file_name_length as usize * 2);
+
+        // FIXME: there should be a better way to do this.
+        // Other than the BE/LE optimization mentioned above.
+        for _ in 0..file_name_length {
+            u16_buf.push(self.read_u16()?);
+        }
+
+        match String::from_utf16(&u16_buf) {
+            Err(_) => Err(Error::InvalidString),
+            Ok(s) => Ok(s),
+        }
+    }
+
     // TODO: Small possible optimization opportinuty,
     // only has to allocate for String on big-endian machines.
     // as you can just slice::from_raw_parts the &[u8] -> &[u16] and itll just work.
     // Would need to dupe this function with #[cfg(target_endian=little/big)]
     fn read_record(&mut self) -> Result<Record<'a>, Error> {
-        let file_name_length = self.read_u32()?;
-        let file_name = {
-            let mut u16_buf: Vec<u16> = Vec::with_capacity(file_name_length as usize * 2);
-
-            // FIXME: there should be a better way to do this.
-            // Other than the BE/LE optimization mentioned above.
-            for _ in 0..file_name_length {
-                u16_buf.push(self.read_u16()?);
-            }
-
-            match String::from_utf16(&u16_buf) {
-                Err(_) => {
-                    return Err(Error::InvalidString);
-                },
-                Ok(s) => s,
-            }
-        };
+        let file_name = self.read_utf16()?;
 
         self.read_exact(b"Iloc", "Struct ID was not \"Iloc\".")?;
 
@@ -137,20 +148,28 @@ impl<'a> Block<'a> {
 
     fn get_record_data(&mut self, struct_type: &'a str) -> Result<RecordData<'a>, Error> {
         match struct_type {
-            "bool" => Ok(RecordData::Bool(self.read_u32()? != 0)),
             "long" => Ok(RecordData::Long(self.read_i32()?)),
             "shor" => {
+                // 'shor' is still stored as 4 bytes, but is only a 16 byte integer.
                 self.skip(2)?;
                 Ok(RecordData::Shor(self.read_i16()?))
             },
+            "bool" => Ok(RecordData::Bool(self.read_u32()? != 0)),
             "blob" => {
                 let amt = self.read_u32()?;
                 Ok(RecordData::Blob(self.read_buf(amt as usize)?))
             },
+            "type" => self.get_four_char_code_type(),
+            "ustr" => Ok(RecordData::Ustr(self.read_utf16()?)),
+            "comp" => Ok(RecordData::Comp(self.read_i64()?)),
+            "dutc" => Ok(RecordData::Dutc(self.read_i64()?)),
             bad => {
                 Err(Error::UnkonwnStructureType(bad.to_string()))
             }
         }
+    }
+    fn get_four_char_code_type(&mut self) -> Result<RecordData<'a>, Error> {
+        Err(Error::BadData("IDK what to do, sorry!"))
     }
 }
 

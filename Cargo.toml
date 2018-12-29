@@ -5,6 +5,7 @@ authors = ["Davis Silverman <sinistersnare@gmail.com>"]
 license-file = "LICENSE.md"
 
 edition = "2015"
+exclude = ["examples/*"]
 
 description = "A .DS_Store parser for Rust."
 documentation = "https://docs.rs/ds_store/"
