@@ -55,10 +55,16 @@ Please see the LICENSE.md file for information.
 
 ## TODO ##
 
+Looking at this list, I probably should not have released the library so early! I was so excited though!
+Oh well, I guess I better get to improving it!
+
+* Describe what DS_Store files are in the README!
 * Address the various TODOs within the code.
 * Document everything!
 * Rigorous testing? Probably!
+    * Make sure to test with background images and all sorts of stuff.
 * Better API? What do _you_ want to do with DS_Store files? Let me know! Make an issue!
 * Make no_std compatible? Probably not gonna happen. std types too nice.
 * Fill out Cargo.toml metadata with docs location and stuff.
 * Should I exclude the examples from the cargo manifest? So that there isnt so many useless kilobytes being downloaded with the crate. People who want the examples probably just clone the library right?
+* Creation/manipulation of `.DS_Store` files?????

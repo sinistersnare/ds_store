@@ -109,7 +109,12 @@ impl<'a> Block<'a> {
         Ok(left)
     }
 
+    /// Reads a 4-byte `length` and then reads (`length*2`)-bytes to create a `String`.
     fn read_utf16(&mut self) -> Result<String, Error> {
+        // TODO: Small possible optimization opportinuty,
+        // only has to allocate for String on big-endian machines.
+        // as you can just slice::from_raw_parts the &[u8] -> &[u16] and itll just work.
+        // Would need to dupe this function with #[cfg(target_endian=little/big)]
         let file_name_length = self.read_u32()?;
         let mut u16_buf: Vec<u16> = Vec::with_capacity(file_name_length as usize * 2);
 
@@ -125,10 +130,6 @@ impl<'a> Block<'a> {
         }
     }
 
-    // TODO: Small possible optimization opportinuty,
-    // only has to allocate for String on big-endian machines.
-    // as you can just slice::from_raw_parts the &[u8] -> &[u16] and itll just work.
-    // Would need to dupe this function with #[cfg(target_endian=little/big)]
     fn read_record(&mut self) -> Result<Record<'a>, Error> {
         let file_name = self.read_utf16()?;
 
