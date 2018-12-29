@@ -4,14 +4,14 @@ version = "0.1.0"
 authors = ["Davis Silverman <sinistersnare@gmail.com>"]
 license-file = "LICENSE.md"
 
-edition = "2018"
+edition = "2015"
 
 description = "A .DS_Store parser for Rust."
 documentation = "https://github.com/sinistersnare/ds_store"
 repository = "https://github.com/sinistersnare/ds_store"
 homepage = "https://github.com/sinistersnare/ds_store"
 readme = "README.md"
-keywords = ["ds_store", "ds-store", "ds store", "ds"]
+keywords = ["ds_store", "ds-store", "ds"]
 categories = ["filesystem", "os::macos-apis", "config", "no-std"]
 
 [badges]
@@ -21,9 +21,8 @@ maintenance = { status = "passively-maintained" }
 name = "ds_store"
 path = "src/lib.rs"
 
-[[bin]]
-name = "example"
-path = "src/bin.rs"
+[[example]]
+name = "basic"
 
 [dependencies]
 byteorder = { version = "1.2", default-features = false }

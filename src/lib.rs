@@ -1,8 +1,8 @@
 
 extern crate byteorder;
 
-use crate::allocator::{Allocator, Record};
-pub use crate::allocator::Directory;
+use crate::allocator::{Allocator};
+pub use crate::allocator::{Directory, Record};
 pub mod allocator;
 
 
@@ -22,7 +22,6 @@ pub enum Error {
 pub struct DsStore<'a> {
     directory: Directory<'a>,
 }
-
 
 impl<'a> DsStore<'a> {
     pub fn new(file_data: &'a [u8]) -> Result<DsStore<'a>, Error> {
