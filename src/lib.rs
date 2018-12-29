@@ -6,8 +6,7 @@ pub use crate::allocator::{Directory, Record};
 pub mod allocator;
 
 
-// TODO: Better errors, BadData, NotEnoughData,
-// and InvalidString could all take a &'static str, describing their errors.
+// TODO: Better errors NotEnoughData, and InvalidString could all take a &'static str, describing their errors.
 #[derive(Debug)]
 pub enum Error {
     BadData(&'static str),

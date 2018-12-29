@@ -102,7 +102,6 @@ impl<'a> Block<'a> {
     // only has to allocate for String on big-endian machines.
     // as you can just slice::from_raw_parts the &[u8] -> &[u16] and itll just work.
     // Would need to dupe this function with #[cfg(target_endian=little/big)]
-    #[cfg(target_endian="little")]
     fn read_record(&mut self) -> Result<Record<'a>, Error> {
         let file_name_length = self.read_u32()?;
         let file_name = {

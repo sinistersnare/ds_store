@@ -55,6 +55,7 @@ Please see the LICENSE.md file for information.
 
 ## TODO ##
 
+* Release documentation?
 * Rigorous testing? Probably!
 * Better API? What do _you_ want to do with DS_Store files? Let me know! Make an issue!
 * Make no_std compatible
