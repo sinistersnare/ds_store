@@ -3,6 +3,7 @@
 
 [![Chrono on crates.io][cratesio-image]][cratesio]
 [![Chrono on docs.rs][docsrs-image]][docsrs]
+
 [cratesio-image]: https://img.shields.io/crates/v/ds_store.svg
 [cratesio]: https://crates.io/crates/ds_store
 [docsrs-image]: https://docs.rs/ds_store/badge.svg
