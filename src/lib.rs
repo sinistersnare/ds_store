@@ -1,21 +1,23 @@
 
 extern crate byteorder;
+extern crate chrono;
 
+use std::collections::HashMap;
 use crate::allocator::{Allocator};
-pub use crate::allocator::{Directory, Record};
+pub use crate::allocator::{Directory, RecordValue};
 pub mod allocator;
 
 
 // TODO: Better errors NotEnoughData, and InvalidString could all take a &'static str, describing their errors.
+// TODO: `impl std::error::Error`?
 #[derive(Debug)]
-pub enum Error {
+pub enum Error<'a> {
     BadData(&'static str),
     NotEnoughData,
     BlockDoesntExist,
     InvalidString,
-    // Can this be a `&'a str` somehow?
-    UnkonwnStructureType(String),
-    // OffsetKeyDoesntExist,
+    UnkonwnStructureType(&'a [u8]),
+    UnsupportedStructureType(&'a [u8])
 }
 
 pub struct DsStore<'a> {
@@ -23,13 +25,13 @@ pub struct DsStore<'a> {
 }
 
 impl<'a> DsStore<'a> {
-    pub fn new(file_data: &'a [u8]) -> Result<DsStore<'a>, Error> {
+    pub fn new(file_data: &'a [u8]) -> Result<DsStore<'a>, Error<'a>> {
         let allocator = Allocator::new(file_data)?;
-        let directory = allocator.traverse()?;
-        Ok(DsStore {directory})
+        let contents: Directory<'a> = allocator.traverse()?;
+        Ok(DsStore {directory: contents})
     }
 
-    pub fn records(&self) -> &Vec<Record<'a>> {
-        &self.directory.records
+    pub fn contents(&self) -> &HashMap<String, HashMap<&'a str, RecordValue<'a>>> {
+        &self.directory.contents
     }
 }

@@ -27,3 +27,4 @@ name = "basic"
 
 [dependencies]
 byteorder = { version = "1.2", default-features = false }
+chrono = "0.4"

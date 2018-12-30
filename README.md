@@ -1,5 +1,13 @@
 # A Rusty `.DS_Store` Parser #
 
+
+[![Chrono on crates.io][cratesio-image]][cratesio]
+[![Chrono on docs.rs][docsrs-image]][docsrs]
+[cratesio-image]: https://img.shields.io/crates/v/ds_store.svg
+[cratesio]: https://crates.io/crates/ds_store
+[docsrs-image]: https://docs.rs/ds_store/badge.svg
+[docsrs]: https://docs.rs/ds_store
+
 ## Get The Library! ##
 
 add something like this to your `Cargo.toml` file:
@@ -14,8 +22,9 @@ ds_store = "0.1"
 ```rust
 extern crate ds_store;
 
+use std::collections::HashMap;
 use std::{io::Read, fs::File};
-use ds_store::{DsStore, Record};
+use ds_store::{DsStore, RecordValue};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -35,7 +44,7 @@ fn main() {
             return;
         }
     };
-    let records: &Vec<Record> = store.records();
+    let records: &HashMap<String, HashMap<&str, RecordValue>> = store.contents();
     records.iter().for_each(|r| println!("{:?}", r));
     println!("printed {:?} records", records.len());
 }
@@ -53,18 +62,27 @@ This code is distributed under the ***MIT license***.
 Please see the LICENSE.md file for information.
 
 
+## What is a `.DS_Store` file? ##
+
+The _Desktop Services Store_ is mostly just deleted without a second thought. However, such files can be helpful! What are they really for?
+
+Put simply, `.DS_Store` files are used on MacOS Computers to describe the contents of the directory they are in.
+`.DS_Store`'s are created, maintained, and read by the Finder application to properly render directories.
+The things that this file describes includes properties set in the directory options, file icons, directory background color or image, and many more things.
+
+The file has 3 important sections. First, the prelude, which gives information about where to find the main information block of the file. Second, the information block, containing bookkeeping information for the data-section. Finally, the data section, holding the actual metadata of the directory.
+
+
 ## TODO ##
 
 Looking at this list, I probably should not have released the library so early! I was so excited though!
 Oh well, I guess I better get to improving it!
 
-* Describe what DS_Store files are in the README!
 * Address the various TODOs within the code.
 * Document everything!
 * Rigorous testing? Probably!
     * Make sure to test with background images and all sorts of stuff.
 * Better API? What do _you_ want to do with DS_Store files? Let me know! Make an issue!
-* Make no_std compatible? Probably not gonna happen. std types too nice.
-* Fill out Cargo.toml metadata with docs location and stuff.
-* Should I exclude the examples from the cargo manifest? So that there isnt so many useless kilobytes being downloaded with the crate. People who want the examples probably just clone the library right?
 * Creation/manipulation of `.DS_Store` files?????
+* Make no_std compatible? Probably not gonna happen. std types too nice.
+* Add logging, to log assumptions made being proved wrong (like 'icgo' record not being `0x0000000000000004`)

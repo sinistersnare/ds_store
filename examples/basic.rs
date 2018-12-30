@@ -1,7 +1,8 @@
 extern crate ds_store;
 
+use std::collections::HashMap;
 use std::{io::Read, fs::File};
-use ds_store::{DsStore, Record};
+use ds_store::{DsStore, RecordValue};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -21,7 +22,7 @@ fn main() {
             return;
         }
     };
-    let records: &Vec<Record> = store.records();
+    let records: &HashMap<String, HashMap<&str, RecordValue>> = store.contents();
     records.iter().for_each(|r| println!("{:?}", r));
     println!("printed {:?} records", records.len());
 }
