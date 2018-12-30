@@ -1,6 +1,6 @@
 [package]
 name = "ds_store"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Davis Silverman <sinistersnare@gmail.com>"]
 license-file = "LICENSE.md"
 
