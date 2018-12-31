@@ -41,15 +41,17 @@ pub enum BackgroundType {
     Picture(u32),
 }
 
+/// How a directory is viewed in the finder.
+/// Icon view, Column/Browser view, List view, and Cover Flow view.
 #[derive(Debug)]
 pub enum StyleType {
-    /// "icnv"
+    /// represented as "icnv" in the .DS_Store file.
     Icon,
-    /// "clmv"
+    /// represented as "clmv" in the .DS_Store file.
     ColumnBrowser,
-    /// "Nlsv"
+    /// represented as "Nlsv" in the .DS_Store file.
     List,
-    /// "Flwv"
+    /// represented as "Flwv" in the .DS_Store file.
     CoverFlow,
 }
 

@@ -1,6 +1,5 @@
 # A Rusty `.DS_Store` Parser #
 
-
 [![Chrono on crates.io][cratesio-image]][cratesio]
 [![Chrono on docs.rs][docsrs-image]][docsrs]
 
