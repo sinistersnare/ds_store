@@ -13,7 +13,7 @@ repository = "https://github.com/sinistersnare/ds_store"
 homepage = "https://github.com/sinistersnare/ds_store"
 readme = "README.md"
 keywords = ["ds_store", "ds-store", "ds"]
-categories = ["filesystem", "os::macos-apis", "config", "no-std"]
+categories = ["filesystem", "os::macos-apis", "config"]
 
 [badges]
 maintenance = { status = "passively-maintained" }
