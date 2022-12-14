@@ -356,6 +356,14 @@ impl<'a> Block<'a> {
                     other => Err(Error::UnkonwnStructureType(other)),
                 }
             },
+            b"ptbL" => {
+                self.read_exact(b"ustr", "\"ptbL\" only takes ustr")?;
+                Ok(RecordValue::String(self.read_utf16()?))
+            },
+            b"ptbN" => {
+                self.read_exact(b"ustr", "\"ptbN\" only takes ustr")?;
+                Ok(RecordValue::String(self.read_utf16()?))
+            },
             other => Err(Error::UnkonwnStructureType(other)),
         }?;
         // should be impossible to hit error case,
