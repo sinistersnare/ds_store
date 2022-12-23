@@ -14,7 +14,7 @@ add something like this to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-ds_store = "0.2"
+ds_store = "0.3"
 ```
 
 ## Usage ##

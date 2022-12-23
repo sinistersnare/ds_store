@@ -1,6 +1,6 @@
 [package]
 name = "ds_store"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Davis Silverman <sinistersnare@gmail.com>"]
 license-file = "LICENSE.md"
 
@@ -21,9 +21,6 @@ maintenance = { status = "passively-maintained" }
 [lib]
 name = "ds_store"
 path = "src/lib.rs"
-
-[[example]]
-name = "basic"
 
 [dependencies]
 byteorder = { version = "1.2", default-features = false }
